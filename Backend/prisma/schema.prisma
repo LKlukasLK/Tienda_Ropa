@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DIRECT_URL")
+}
+
+// --- MODELOS PARA TU TIENDA ---
+
+model Categoria {
+  id        Int        @id @default(autoincrement())
+  nombre    String     @unique
+  productos Producto[]
+}
+
+model Producto {
+  id          Int       @id @default(autoincrement())
+  nombre      String    @unique
+  descripcion String?
+  precio      Decimal
+  stock       Int       @default(0)
+  imagen      String?
+  createdAt   DateTime  @default(now())
+  
+  // Relación con Categoria
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
+  categoriaId Int
+}
