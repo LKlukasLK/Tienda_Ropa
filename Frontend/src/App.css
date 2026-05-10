@@ -46,7 +46,76 @@
       scale(1.4);
   }
 
-  .vite {
+  .vite {import { useEffect, useState } from 'react';
+import api from './api/axios';
+import { Producto } from './types';
+import { Navbar } from './components/Navbar';
+
+function App() {
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/productos')
+      .then(res => {
+        // Tu backend devuelve { info, resultados } por la paginación
+        setProductos(res.data.resultados);
+        setLoading(false);
+      })
+      .catch(err => console.error("Error cargando productos", err));
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <header className="mb-10">
+          <h2 className="text-3xl font-extrabold text-gray-900">Nueva Colección</h2>
+          <p className="text-gray-500 mt-2">Descubre las últimas tendencias en moda.</p>
+        </header>
+
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {productos.map(producto => (
+              <div key={producto.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
+                <div className="aspect-[3/4] overflow-hidden bg-gray-200 relative">
+                  <img 
+                    src={producto.imagen || 'https://via.placeholder.com/400x500'} 
+                    alt={producto.nombre}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-3 right-3">
+                    <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm">
+                      {producto.categoria.nombre}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="p-5">
+                  <h3 className="text-gray-900 font-bold text-lg mb-1">{producto.nombre}</h3>
+                  <p className="text-gray-500 text-sm line-clamp-1 mb-3">{producto.descripcion}</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-indigo-600 font-black text-xl">{producto.precio}€</span>
+                    <button className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-600 transition-colors">
+                      Añadir
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+export default App;
     z-index: 0;
     top: 107px;
     height: 26px;
