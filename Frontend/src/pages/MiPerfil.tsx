@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Package, Lock, LogOut, Plus, Trash2, CheckCircle } from 'lucide-react';
+import { User, MapPin, Package, Lock, LogOut, Plus, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { showPopup } from '../components/Notificacion';
 import api from '../api/axios';
