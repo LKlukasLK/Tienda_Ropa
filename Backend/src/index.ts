@@ -20,10 +20,14 @@ import { handleStripeWebhook } from './controllers/webhook.controller';
 export const app = express();
 // Seguridad basica
 app.use(helmet());
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'], // Vite usa 5173 por defecto
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  credentials: true // Permite enviar cookies o headers de autorización
+  credentials: true
 }));
 
 // LIMITADOR GLOBAL DE PETICIONES ---
