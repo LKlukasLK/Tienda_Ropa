@@ -1,6 +1,6 @@
 # Backend - Tienda de Ropa
 
-API REST para una tienda de ropa hecha con Express, TypeScript, Prisma y PostgreSQL. Incluye autenticacion con JWT, catalogo de productos, categorias, carrito, wishlist, pedidos, subida de imagenes con Supabase Storage y pagos con Stripe.
+API REST para una tienda de ropa hecha con Express, TypeScript, Prisma y PostgreSQL. Incluye autenticacion con JWT, catalogo de productos, categorias, carrito, wishlist, pedidos, subida de imagenes con Supabase Storage, pagos con Stripe, webhooks y middlewares basicos de seguridad.
 
 ## Tecnologias
 
@@ -10,6 +10,8 @@ API REST para una tienda de ropa hecha con Express, TypeScript, Prisma y Postgre
 - PostgreSQL
 - Supabase Storage
 - Stripe
+- Helmet
+- Express Rate Limit
 - Jest + Supertest
 
 ## Requisitos
@@ -18,6 +20,7 @@ API REST para una tienda de ropa hecha con Express, TypeScript, Prisma y Postgre
 - Una base de datos PostgreSQL
 - Credenciales de Supabase si se van a subir imagenes
 - Clave secreta de Stripe si se van a probar pagos
+- Secreto de webhook de Stripe si se van a recibir confirmaciones de pago
 
 ## Instalacion
 
@@ -43,6 +46,7 @@ SUPABASE_URL="https://tu-proyecto.supabase.co"
 SUPABASE_SERVICE_ROLE_KEY="tu-service-role-key"
 
 STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
 ```
 
 Notas:
@@ -51,6 +55,7 @@ Notas:
 - `JWT_SECRET` se usa para firmar y validar tokens.
 - `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` son necesarios para la subida de imagenes.
 - `STRIPE_SECRET_KEY` es necesaria para crear intentos de pago.
+- `STRIPE_WEBHOOK_SECRET` es necesaria para validar eventos recibidos desde Stripe.
 
 ## Base de datos
 
@@ -100,6 +105,15 @@ El CORS permite peticiones desde:
 - `http://localhost:5173`
 - `http://localhost:3000`
 
+## Seguridad
+
+El servidor aplica:
+
+- `helmet()` para cabeceras HTTP de seguridad.
+- Rate limit global de 100 peticiones por IP cada 15 minutos.
+- Rate limit de autenticacion de 10 intentos por IP cada hora en login y registro.
+- Webhook de Stripe con `express.raw()` antes de `express.json()` para validar la firma correctamente.
+
 ## Scripts
 
 | Comando | Descripcion |
@@ -139,15 +153,13 @@ El CORS permite peticiones desde:
 
 ### Usuarios
 
-> En el codigo actual las rutas de usuario estan montadas como `/api/usarios`.
-
 | Metodo | Ruta | Proteccion | Descripcion |
 | --- | --- | --- | --- |
-| `GET` | `/api/usarios/perfil` | Usuario autenticado | Obtiene el perfil |
-| `POST` | `/api/usarios/direcciones` | Usuario autenticado | Agrega una direccion |
-| `DELETE` | `/api/usarios/direcciones/:id` | Usuario autenticado | Elimina una direccion |
-| `GET` | `/api/usarios/wishlist` | Usuario autenticado | Lista la wishlist |
-| `POST` | `/api/usarios/wishlist` | Usuario autenticado | Agrega o quita un producto de la wishlist |
+| `GET` | `/api/usuarios/perfil` | Usuario autenticado | Obtiene el perfil |
+| `POST` | `/api/usuarios/direcciones` | Usuario autenticado | Agrega una direccion |
+| `DELETE` | `/api/usuarios/direcciones/:id` | Usuario autenticado | Elimina una direccion |
+| `GET` | `/api/usuarios/wishlist` | Usuario autenticado | Lista la wishlist |
+| `POST` | `/api/usuarios/wishlist` | Usuario autenticado | Agrega o quita un producto de la wishlist |
 
 ### Carrito
 
@@ -173,6 +185,12 @@ Todas las rutas requieren autenticacion.
 | Metodo | Ruta | Proteccion | Descripcion |
 | --- | --- | --- | --- |
 | `POST` | `/api/pagos/crear-intento` | Usuario autenticado | Crea un intento de pago con Stripe |
+
+### Webhooks
+
+| Metodo | Ruta | Descripcion |
+| --- | --- | --- |
+| `POST` | `/api/webhooks/stripe` | Recibe eventos de Stripe y marca pedidos como `PAGADO` cuando llega `payment_intent.succeeded` |
 
 ## Autenticacion
 
@@ -221,3 +239,4 @@ Backend/
 ## Observaciones
 
 - El servidor no llama a `listen` cuando `NODE_ENV=test`, lo que permite probar la app con Supertest.
+- El webhook de Stripe debe recibir el cuerpo raw; por eso esta ruta se registra antes de `express.json()` en `src/index.ts`.

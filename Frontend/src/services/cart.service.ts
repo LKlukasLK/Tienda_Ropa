@@ -1,23 +1,22 @@
 import api from '../api/axios';
+import type { CartItem } from '../types/index';
 
 export const cartService = {
-  getCart: async () => {
+  getCart: async (): Promise<CartItem[]> => {
     const { data } = await api.get('/carrito');
     return data;
   },
 
-  addToCart: async (varianteId: number, cantidad: number) => {
+  addItem: async (varianteId: number, cantidad: number) => {
     const { data } = await api.post('/carrito', { varianteId, cantidad });
     return data;
   },
 
   removeItem: async (id: number) => {
-    const { data } = await api.delete(`/carrito/${id}`);
-    return data;
+    await api.delete(`/carrito/${id}`);
   },
 
   clearCart: async () => {
-    const { data } = await api.delete('/carrito');
-    return data;
+    await api.delete('/carrito');
   }
 };

@@ -61,13 +61,6 @@ export const crearPedido = async (req: AuthRequest, res: Response) => {
           }
         }
       });
-      // ============================================================
-      // VACIAR EL CARRITO DEL USUARIO TRAS EL PEDIDO
-      // ============================================================
-      await tx.carritoItem.deleteMany({
-        where: { userId: userId }
-      });
-
       return pedido;
     });
 

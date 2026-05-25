@@ -8,6 +8,12 @@ export const productService = {
     return data; // Devuelve { info, resultados }
   },
 
+  // Obtener opciones para filtros
+  getFiltros: async () => {
+    const { data } = await api.get('/productos/filtros');
+    return data; // Devuelve { colores, tallas, precioMin, precioMax }
+  },
+
   // Obtener uno por ID
   getById: async (id: string | number) => {
     const { data } = await api.get(`/productos/${id}`);

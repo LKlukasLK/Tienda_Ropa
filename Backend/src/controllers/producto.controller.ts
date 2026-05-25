@@ -189,6 +189,39 @@ export const subirGaleriaProducto = async (req: Request, res: Response) => {
   }
 };
 
+export const getOpcionesFiltro = async (req: Request, res: Response) => {
+  try {
+    const [colores, tallas, precios] = await Promise.all([
+      prisma.varianteProducto.findMany({
+        where: { producto: { activo: true } },
+        select: { color: true },
+        distinct: ['color'],
+        orderBy: { color: 'asc' }
+      }),
+      prisma.varianteProducto.findMany({
+        where: { producto: { activo: true } },
+        select: { talla: true },
+        distinct: ['talla'],
+        orderBy: { talla: 'asc' }
+      }),
+      prisma.producto.aggregate({
+        where: { activo: true },
+        _min: { precio: true },
+        _max: { precio: true }
+      })
+    ]);
+
+    res.json({
+      colores: colores.map(c => c.color),
+      tallas: tallas.map(t => t.talla),
+      precioMin: Number(precios._min.precio) || 0,
+      precioMax: Number(precios._max.precio) || 1000
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener opciones de filtro" });
+  }
+};
+
 export const eliminarProducto = async (req: Request, res: Response) => {
   const { id } = req.params;
   

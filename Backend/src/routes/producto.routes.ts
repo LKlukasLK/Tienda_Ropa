@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import prisma from "../lib/prisma";
-import { crearProducto, getProductos, subirGaleriaProducto, eliminarProducto, getProductoById, getProductoBySku } from '../controllers/producto.controller'; // Importar el controlador
+import { crearProducto, getProductos, subirGaleriaProducto, eliminarProducto, getProductoById, getProductoBySku, getOpcionesFiltro } from '../controllers/producto.controller'; // Importar el controlador
 import { authenticate, isAdmin } from '../middlewares/auth.middleware'; // Importar seguridad
 import { upload } from '../middlewares/upload.middleware'; 
 import { createProductoSchema } from '../schemas/producto.schema';
@@ -11,6 +11,7 @@ const router = Router();
 // --- RUTAS PÚBLICAS ---
 
 // Obtener todos los productos
+router.get('/filtros', getOpcionesFiltro);
 
 router.get('/', getProductos);
 

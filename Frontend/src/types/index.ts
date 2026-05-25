@@ -16,3 +16,19 @@ export type Producto = {
     stock: number;
   }>;
 };
+
+export interface CartItem {
+  id: number;
+  cantidad: number;
+  varianteId: number;
+  variante: {
+    id: number;
+    talla: string;
+    color: string;
+    producto: {
+      nombre: string;
+      precio: string;
+      imagen: string | null;
+    }
+  }
+}
