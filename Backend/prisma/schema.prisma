@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DIRECT_URL")
+}
+
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Rol {
+  USER
+  ADMIN
+  EDITOR
+}
+
+enum EstadoPedido {
+  PENDIENTE
+  PAGADO
+  ENVIADO
+  ENTREGADO
+  CANCELADO
+}
+
+enum MetodoPago {
+  STRIPE
+  PAYPAL
+  TRANSFERENCIA
+}
+
+enum TipoDescuento {
+  PORCENTAJE   // 20% off
+  MONTO_FIJO   // 10€ off
+}
+
+enum TipoAplicacion {
+  CUPON        // El cliente introduce un código
+  AUTOMATICO   // Se aplica solo (rebajas, temporada, etc.)
+}
+
+// ============================================================
+// CATÁLOGO
+// ============================================================
+
+model Categoria {
+  id        Int        @id @default(autoincrement())
+  nombre    String     @unique
+  slug      String     @unique // para URLs: /categoria/camisetas
+  productos Producto[]
+}
+
+model Producto {
+  id          Int                 @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  precio      Decimal             @db.Decimal(10, 2)
+  sku         String              @unique
+  imagen      String?             // URL principal (Supabase Storage)
+  activo      Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  categoria   Categoria           @relation(fields: [categoriaId], references: [id])
+  categoriaId Int
+
+  variantes     VarianteProducto[]
+  imagenes      ImagenProducto[]
+  wishlistItems WishlistItem[]
+  descuentos    DescuentoProducto[]
+}
+
+// Galería de imágenes adicionales por producto
+model ImagenProducto {
+  id         Int      @id @default(autoincrement())
+  url        String
+  orden      Int      @default(0)
+  productoId Int
+  producto   Producto @relation(fields: [productoId], references: [id])
+}
+
+model VarianteProducto {
+  id         Int      @id @default(autoincrement())
+  talla      String
+  color      String
+  stock      Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  producto   Producto @relation(fields: [productoId], references: [id])
+  productoId Int
+
+  detalles     DetallePedido[]
+  carritoItems CarritoItem[]
+
+  @@unique([productoId, talla, color])
+}
+
+// ============================================================
+// DESCUENTOS
+// ============================================================
+
+model Descuento {
+  id            Int            @id @default(autoincrement())
+  nombre        String         // descripción interna: "Black Friday 2025"
+  codigo        String?        @unique // solo si es cupón, ej: "BFRIDAY20"
+  tipo          TipoDescuento
+  aplicacion    TipoAplicacion
+  valor         Decimal        @db.Decimal(10, 2) // 20 (%) o 10 (€)
+  minCompra     Decimal?       @db.Decimal(10, 2) // importe mínimo para activarse
+  maxUsos       Int?           // null = ilimitado
+  usosActuales  Int            @default(0)
+  activo        Boolean        @default(true)
+  inicio        DateTime?
+  fin           DateTime?
+  createdAt     DateTime       @default(now())
+
+  productos DescuentoProducto[]
+  pedidos   Pedido[]
+}
+
+// Si un descuento no tiene filas aquí, aplica a todo el catálogo
+model DescuentoProducto {
+  descuentoId Int
+  productoId  Int
+  descuento   Descuento @relation(fields: [descuentoId], references: [id])
+  producto    Producto  @relation(fields: [productoId], references: [id])
+
+  @@id([descuentoId, productoId])
+}
+
+// ============================================================
+// USUARIOS
+// ============================================================
+
+model User {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  apellidos String
+  email     String   @unique
+  password  String   // siempre hash bcrypt
+  rol       Rol      @default(USER)
+  telefono  String?
+  avatar    String?  // URL Supabase Storage
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  direcciones Direccion[]
+  pedidos     Pedido[]
+  wishlist    WishlistItem[]
+  carrito     CarritoItem[]
+}
+
+model Direccion {
+  id           Int    @id @default(autoincrement())
+  titulo       String // "Mi casa", "Oficina"
+  calle        String
+  ciudad       String
+  codigoPostal String
+  referencia   String?
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+}
+
+// ============================================================
+// WISHLIST (favoritos)
+// ============================================================
+
+model WishlistItem {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  productoId Int
+  producto   Producto @relation(fields: [productoId], references: [id])
+
+  @@unique([userId, productoId])
+}
+
+// ============================================================
+// CARRITO (persistente / carrito abandonado)
+// ============================================================
+
+model CarritoItem {
+  id        Int      @id @default(autoincrement())
+  cantidad  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  varianteId Int
+  variante   VarianteProducto @relation(fields: [varianteId], references: [id])
+
+  @@unique([userId, varianteId])
+}
+
+// ============================================================
+// PEDIDOS
+// ============================================================
+
+model Pedido {
+  id         Int          @id @default(autoincrement())
+  nroPedido  String       @unique // código legible: SHOP-10024
+  total      Decimal      @db.Decimal(10, 2)
+  descuento  Decimal      @db.Decimal(10, 2) @default(0) // importe descontado
+  metodoPago MetodoPago?
+  estado     EstadoPedido @default(PENDIENTE)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  descuentoId Int?
+  cupon       Descuento? @relation(fields: [descuentoId], references: [id])
+
+  // Snapshot de la dirección al momento del pedido
+  envio_titulo       String
+  envio_calle        String
+  envio_ciudad       String
+  envio_codigoPostal String
+  envio_referencia   String?
+
+  detalles  DetallePedido[]
+  historial HistorialEstado[]
+}
+
+model DetallePedido {
+  id         Int     @id @default(autoincrement())
+  cantidad   Int
+  precioUnit Decimal @db.Decimal(10, 2) // precio capturado al comprar
+
+  pedidoId Int
+  pedido   Pedido @relation(fields: [pedidoId], references: [id])
+
+  varianteId Int
+  variante   VarianteProducto @relation(fields: [varianteId], references: [id])
+}
+
+// Registra cada cambio de estado del pedido con timestamp
+model HistorialEstado {
+  id        Int          @id @default(autoincrement())
+  estado    EstadoPedido
+  nota      String?      // ej: "Número de seguimiento: ES123456"
+  createdAt DateTime     @default(now())
+
+  pedidoId Int
+  pedido   Pedido @relation(fields: [pedidoId], references: [id])
+}
