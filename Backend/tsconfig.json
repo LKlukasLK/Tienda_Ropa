@@ -12,7 +12,7 @@
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "types": ["node", "jest"],
+    "types": ["node"],
 
     // For nodejs:
     // "lib": ["esnext"],
@@ -43,5 +43,6 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true
-  }
+  },
+  "exclude": ["node_modules", "dist", "prisma", "**/*.test.ts", "**/*.spec.ts"]
 }
